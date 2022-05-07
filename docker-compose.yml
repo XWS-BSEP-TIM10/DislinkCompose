@@ -1,0 +1,178 @@
+version: "3.9"
+services:
+
+  api-gateway-microservice:
+    container_name: api-gateway-microservice
+    image: "xmlteam10/api-gateway-microservice"
+    networks:
+      - backend_net
+    ports:
+      - "8678:8678"
+    restart: on-failure:3 
+    environment:
+      API_GATEWAY_PORT: 8678
+      AUTH_HOST: auth-microservice
+      AUTH_GRPC_PORT: 8785
+      POST_HOST: post-microservice
+      POST_GRPC_PORT: 8760
+      CONNECTIONS_HOST: connections-microservice
+      CONNECTIONS_GRPC_PORT: 8787
+      PROFILE_HOST: profile-microservice
+      PROFILE_GRPC_PORT: 8888
+  profile-microservice:
+    container_name: profile-microservice
+    image: "xmlteam10/profile-microservice"
+    networks:
+      - profile_database_net
+      - backend_net
+    ports:
+      - "8081:8081"
+    restart: on-failure:3 
+    environment:
+      AUTH_HOST: auth-microservice
+      AUTH_PORT: 8083
+      PROFILE_PORT: 8081
+      PROFILE_DB_HOST: profile-postgres
+      PROFILE_DB_PORT: 5432
+      PROFILE_DB_NAME: ProfileDatabase
+      PROFILE_DB_USER: postgres
+      PROFILE_DB_PASS: admin
+      PROFILE_GRPC_PORT: 8888
+    depends_on:
+     -  profile-postgres
+  auth-microservice:
+    container_name: auth-microservice
+    image: "xmlteam10/auth-microservice"
+    networks:
+      - auth_database_net
+      - backend_net
+    ports:
+      - "8083:8083"
+      - "8785:8785" #grpc
+    restart: on-failure:3 
+    environment:
+      CONNECTIONS_HOST: connections-microservice
+      CONNECTIONS_PORT: 8082
+      PROFILE_HOST: profile-microservice
+      PROFILE_PORT: 8081
+      AUTH_PORT: 8083
+      AUTH_DB_HOST: auth-postgres
+      AUTH_DB_PORT: 5432
+      AUTH_DB_NAME: AuthDatabase
+      AUTH_DB_USER: postgres
+      AUTH_DB_PASS: admin
+      AUTH_GRPC_PORT: 8785
+    depends_on:
+     -  auth-postgres
+  post-microservice:
+    container_name: post-microservice
+    image: "xmlteam10/post-microservice"
+    networks:
+      - post_database_net
+      - backend_net
+    ports:
+      - "8084:8084"
+      - "8760:8760" #grpc
+    restart: on-failure:3 
+    environment:
+      POST_PORT: 8084
+      POST_DB_HOST: mongodb
+      POST_DB_PORT: 27017
+      POST_DB_NAME: PostDatabase
+      POST_DB_USER: admin
+      POST_DB_PASS: admin
+      POST_GRPC_PORT: 8760
+      CONNECTIONS_HOST: connections-microservice
+      CONNECTIONS_GRPC_PORT: 8787
+      spring_data_mongodb_username: admin
+      spring_data_mongodb_password: admin
+    depends_on:
+     - mongodb
+
+  connections-microservice:
+    container_name: connections-microservice
+    image: "xmlteam10/connections-microservice"
+    networks:
+      - connections_database_net
+      - backend_net
+    ports:
+      - "8082:8082"
+      - "8787:8787" #grpc
+    restart: on-failure:3 
+    environment:
+      CONNECTIONS_PORT: 8082
+      CONNECTIONS_DB_HOST: connections-neo4j
+      CONNECTIONS_DB_PORT: 7687
+      CONNECTIONS_DB_USER: neo4j
+      CONNECTIONS_DB_PASS: admin
+      CONNECTIONS_GRPC_PORT: 8787
+    depends_on:
+     - connections-neo4j
+
+  profile-postgres:
+    container_name: profile-postgres
+    image: postgres:14.1-alpine
+    networks:
+      - profile_database_net
+    restart: always
+    environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: admin
+        POSTGRES_DB: ProfileDatabase
+    ports:
+      - '5433:5432'
+    
+  auth-postgres:
+    container_name: auth-postgres
+    image: postgres:14.1-alpine
+    networks:
+      - auth_database_net
+    restart: always
+    environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: admin
+        POSTGRES_DB: AuthDatabase
+    ports:
+      - '5434:5432'
+    
+  connections-neo4j:
+    container_name: connections-neo4j
+    image: neo4j:latest
+    networks:
+      - connections_database_net
+    ports: 
+      - "7687:7687"
+    environment: 
+      -  NEO4J_AUTH=none
+
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
+    networks:
+      - post_database_net
+    ports:
+        - 27018:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: PostDatabase
+      MONGO_DB_USERNAME: admin
+      MONGO_DB_PASSWORD: admin
+
+networks:
+  post_database_net:
+    name: post_database_net
+    driver: bridge
+  connections_database_net:
+    name: connections_database_net
+    driver: bridge
+  auth_database_net:
+    name: auth_database_net
+    driver: bridge
+  profile_database_net:
+    name: profile_database_net
+    driver: bridge
+  backend_net:
+    name: backend_net
+    driver: bridge
