@@ -125,7 +125,7 @@ services:
       - "8080:8080"
     restart: on-failure:3 
     environment:
-      AGENT_PORT: 8082
+      AGENT_PORT: 8080
       AGENT_DB_NAME: AgentDatabase
       AGENT_DB_HOST: agent-postgres
       AGENT_DB_PORT: 5432
