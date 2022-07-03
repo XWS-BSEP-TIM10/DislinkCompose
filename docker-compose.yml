@@ -40,8 +40,10 @@ services:
       PROFILE_DB_USER: postgres
       PROFILE_DB_PASS: admin
       PROFILE_GRPC_PORT: 8888
+      NATS_URI: nats://nats:4222
     depends_on:
      -  profile-postgres
+     -  nats
   auth-microservice:
     container_name: auth-microservice
     image: "xmlteam10/auth-microservice"
@@ -65,8 +67,10 @@ services:
       AUTH_DB_USER: postgres
       AUTH_DB_PASS: admin
       AUTH_GRPC_PORT: 8785
+      NATS_URI: nats://nats:4222
     depends_on:
      -  auth-postgres
+     -  nats
   post-microservice:
     container_name: post-microservice
     image: "xmlteam10/post-microservice"
@@ -111,8 +115,10 @@ services:
       CONNECTIONS_DB_USER: neo4j
       CONNECTIONS_DB_PASS: admin
       CONNECTIONS_GRPC_PORT: 8787
+      NATS_URI: nats://nats:4222
     depends_on:
      - connections-neo4j
+     - nats
 
   agent:
     container_name: agent
@@ -135,6 +141,17 @@ services:
       API_GATEWAY_PORT: 8678
     depends_on:
      - agent-postgres
+
+  nats:
+    image: 'nats:2.8.4'
+    # entrypoint: "/gnatsd -DV"
+    expose:
+      - "4222"
+    ports:
+      - "8222:8222"
+    hostname: nats-server
+    networks:
+      - backend_net
 
   profile-postgres:
     container_name: profile-postgres
