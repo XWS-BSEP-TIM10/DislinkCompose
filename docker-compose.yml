@@ -20,6 +20,8 @@ services:
       CONNECTIONS_GRPC_PORT: 8787
       PROFILE_HOST: profile-microservice
       PROFILE_GRPC_PORT: 8888
+      MESSAGING_HOST: messaging-microservice
+      MESSAGING_GRPC_PORT: 8889
   profile-microservice:
     container_name: profile-microservice
     image: "xmlteam10/profile-microservice"
@@ -141,6 +143,30 @@ services:
       API_GATEWAY_PORT: 8678
     depends_on:
      - agent-postgres
+  
+  messaging-microservice:
+    container_name: messaging-microservice
+    image: "xmlteam10/messaging-microservice"
+    pull_policy: always
+    networks:
+      - messaging_database_net
+      - backend_net
+    ports:
+      - "8085:8085"
+      - "8889:8889" #grpc
+    restart: on-failure:3 
+    environment:
+      MESSAGE_PORT: 8085
+      MESSAGE_DB_HOST: mongodb-message
+      MESSAGE_DB_PORT: 27017
+      MESSAGE_DB_NAME: MessageDatabase
+      MESSAGE_DB_USER: admin
+      MESSAGE_DB_PASS: admin
+      MESSAGE_GRPC_PORT: 8889
+      spring_data_mongodb_username: admin
+      spring_data_mongodb_password: admin
+    depends_on:
+     - mongodb-message
 
   nats:
     image: 'nats:2.8.4'
@@ -216,6 +242,20 @@ services:
       MONGO_INITDB_DATABASE: PostDatabase
       MONGO_DB_USERNAME: admin
       MONGO_DB_PASSWORD: admin
+  mongodb-message:
+    container_name: mongodb-message
+    image: mongo
+    restart: always
+    networks:
+      - messaging_database_net
+    ports:
+        - 27019:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: MessageDatabase
+      MONGO_DB_USERNAME: admin
+      MONGO_DB_PASSWORD: admin
 
 networks:
   post_database_net:
@@ -235,4 +275,7 @@ networks:
     driver: bridge
   backend_net:
     name: backend_net
+    driver: bridge
+  messaging_database_net:
+    name: messaging_database_net
     driver: bridge
