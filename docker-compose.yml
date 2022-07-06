@@ -168,6 +168,27 @@ services:
     depends_on:
      - mongodb-message
 
+  job-recommendations-microservice:
+    container_name: job-recommendations-microservice
+    image: "xmlteam10/job-recommendations-microservice"
+    pull_policy: always
+    networks:
+      - job_recommendations_database_net
+      - backend_net
+    ports:
+      - "8086:8086"
+      - "8797:8797" #grpc
+    restart: on-failure:3 
+    environment:
+      JOB_RECOMMENDATION_PORT: 8086
+      JOB_RECOMMENDATION_DB_HOST: job-recommendations-neo4j
+      JOB_RECOMMENDATION_DB_PORT: 7687
+      JOB_RECOMMENDATION_DB_USER: neo4j
+      JOB_RECOMMENDATION_DB_PASS: admin
+      JOB_RECOMMENDATION_GRPC_PORT: 8797
+    depends_on:
+     - job-recommendations-neo4j
+
   nats:
     image: 'nats:2.8.4'
     # entrypoint: "/gnatsd -DV"
@@ -256,6 +277,15 @@ services:
       MONGO_INITDB_DATABASE: MessageDatabase
       MONGO_DB_USERNAME: admin
       MONGO_DB_PASSWORD: admin
+  job-recommendations-neo4j:
+    container_name: job-recommendations-neo4j
+    image: neo4j:latest
+    networks:
+      - job_recommendations_database_net
+    ports: 
+      - "7688:7687"
+    environment: 
+      -  NEO4J_AUTH=none
 
 networks:
   post_database_net:
@@ -278,4 +308,7 @@ networks:
     driver: bridge
   messaging_database_net:
     name: messaging_database_net
+    driver: bridge
+  job_recommendations_database_net:
+    name: job_recommendations_database_net
     driver: bridge
