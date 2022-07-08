@@ -1,6 +1,13 @@
 version: "3.9"
-services:
 
+x-logging: &fluent-bit
+  driver: fluentd
+  options:
+    fluentd-address: localhost:24224
+    fluentd-async-connect: "true"
+    tag: docker
+
+services:
   api-gateway-microservice:
     container_name: api-gateway-microservice
     image: "xmlteam10/api-gateway-microservice"
@@ -10,6 +17,9 @@ services:
     ports:
       - "8678:8678"
     restart: on-failure:3 
+    logging: *fluent-bit
+    depends_on:
+     -  fluent-bit
     environment:
       API_GATEWAY_PORT: 8678
       AUTH_HOST: auth-microservice
@@ -22,6 +32,8 @@ services:
       PROFILE_GRPC_PORT: 8888
       MESSAGING_HOST: messaging-microservice
       MESSAGING_GRPC_PORT: 8889
+      JOB_RECOMMENDATION_HOST: messaging-microservice
+      JOB_RECOMMENDATION_GRPC_PORT: 8899
   profile-microservice:
     container_name: profile-microservice
     image: "xmlteam10/profile-microservice"
@@ -32,6 +44,7 @@ services:
     ports:
       - "8081:8081"
     restart: on-failure:3 
+    logging: *fluent-bit
     environment:
       AUTH_HOST: auth-microservice
       AUTH_PORT: 8083
@@ -46,10 +59,12 @@ services:
     depends_on:
      -  profile-postgres
      -  nats
+     -  fluent-bit
   auth-microservice:
     container_name: auth-microservice
     image: "xmlteam10/auth-microservice"
     pull_policy: always
+    logging: *fluent-bit
     networks:
       - auth_database_net
       - backend_net
@@ -73,10 +88,12 @@ services:
     depends_on:
      -  auth-postgres
      -  nats
+     -  fluent-bit
   post-microservice:
     container_name: post-microservice
     image: "xmlteam10/post-microservice"
     pull_policy: always
+    logging: *fluent-bit
     networks:
       - post_database_net
       - backend_net
@@ -98,11 +115,13 @@ services:
       spring_data_mongodb_password: admin
     depends_on:
      - mongodb
+     - fluent-bit
 
   connections-microservice:
     container_name: connections-microservice
     image: "xmlteam10/connections-microservice"
     pull_policy: always
+    logging: *fluent-bit
     networks:
       - connections_database_net
       - backend_net
@@ -121,6 +140,7 @@ services:
     depends_on:
      - connections-neo4j
      - nats
+     -  fluent-bit
 
   agent:
     container_name: agent
@@ -148,6 +168,7 @@ services:
     container_name: messaging-microservice
     image: "xmlteam10/messaging-microservice"
     pull_policy: always
+    logging: *fluent-bit
     networks:
       - messaging_database_net
       - backend_net
@@ -167,17 +188,19 @@ services:
       spring_data_mongodb_password: admin
     depends_on:
      - mongodb-message
+     - fluent-bit
 
   job-recommendations-microservice:
     container_name: job-recommendations-microservice
     image: "xmlteam10/job-recommendations-microservice"
     pull_policy: always
+    logging: *fluent-bit
     networks:
       - job_recommendations_database_net
       - backend_net
     ports:
       - "8086:8086"
-      - "8797:8797" #grpc
+      - "8899:8899" #grpc
     restart: on-failure:3 
     environment:
       JOB_RECOMMENDATION_PORT: 8086
@@ -185,9 +208,10 @@ services:
       JOB_RECOMMENDATION_DB_PORT: 7687
       JOB_RECOMMENDATION_DB_USER: neo4j
       JOB_RECOMMENDATION_DB_PASS: admin
-      JOB_RECOMMENDATION_GRPC_PORT: 8797
+      JOB_RECOMMENDATION_GRPC_PORT: 8899
     depends_on:
      - job-recommendations-neo4j
+     - fluent-bit
 
   nats:
     image: 'nats:2.8.4'
@@ -287,6 +311,48 @@ services:
     environment: 
       -  NEO4J_AUTH=none
 
+  
+  loki:
+    image: grafana/loki:main-5206e3a
+    networks:
+      - backend_net
+
+  grafana:
+    image: grafana/grafana:8.5.3
+    ports:
+      - "3000:3000"
+    environment:
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      GF_LOG_FILTERS: rendering:debug
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - backend_net
+
+  renderer:
+    image: grafana/grafana-image-renderer:3.4.2
+    environment:
+      ENABLE_METRICS: "true"
+    networks:
+      - backend_net
+
+  fluent-bit:
+    image: grafana/fluent-bit-plugin-loki:main-5206e3a-amd64
+    environment:
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    networks:
+      - backend_net
+      
+  
+
 networks:
   post_database_net:
     name: post_database_net
@@ -312,3 +378,7 @@ networks:
   job_recommendations_database_net:
     name: job_recommendations_database_net
     driver: bridge
+
+volumes:
+  grafana:
+    name: grafana
