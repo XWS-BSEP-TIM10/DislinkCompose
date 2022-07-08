@@ -351,6 +351,43 @@ services:
     networks:
       - backend_net
       
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.34
+    ports:
+      - "9000:16686"
+    networks:
+      - backend_net
+
+  prometheus:
+    image: prom/prometheus:v2.35.0
+    restart: on-failure
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus:/var/lib/prometheus
+    networks:
+      - backend_net
+
+  cadvisor:
+    image: google/cadvisor:v0.33.0
+    ports:
+      - "8890:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - backend_net
+
+  node-exporter:
+    image: prom/node-exporter:v1.1.2
+    ports:
+      - "9100:9100"
+    networks:
+      - backend_net
   
 
 networks:
@@ -382,3 +419,5 @@ networks:
 volumes:
   grafana:
     name: grafana
+  prometheus:
+    name: prometheus
