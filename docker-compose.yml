@@ -371,7 +371,7 @@ services:
       - backend_net
 
   cadvisor:
-    image: google/cadvisor:v0.33.0
+    image: gcr.io/cadvisor/cadvisor
     ports:
       - "8890:8080"
     volumes:
