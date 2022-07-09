@@ -34,6 +34,7 @@ services:
       MESSAGING_GRPC_PORT: 8889
       JOB_RECOMMENDATION_HOST: messaging-microservice
       JOB_RECOMMENDATION_GRPC_PORT: 8899
+      JAEGER_DOMAIN: jaeger
   profile-microservice:
     container_name: profile-microservice
     image: "xmlteam10/profile-microservice"
@@ -56,6 +57,7 @@ services:
       PROFILE_DB_PASS: admin
       PROFILE_GRPC_PORT: 8888
       NATS_URI: nats://nats:4222
+      JAEGER_DOMAIN: jaeger
     depends_on:
      -  profile-postgres
      -  nats
@@ -85,6 +87,7 @@ services:
       AUTH_DB_PASS: admin
       AUTH_GRPC_PORT: 8785
       NATS_URI: nats://nats:4222
+      JAEGER_DOMAIN: jaeger
     depends_on:
      -  auth-postgres
      -  nats
@@ -113,6 +116,7 @@ services:
       CONNECTIONS_GRPC_PORT: 8787
       spring_data_mongodb_username: admin
       spring_data_mongodb_password: admin
+      JAEGER_DOMAIN: jaeger
     depends_on:
      - mongodb
      - fluent-bit
@@ -137,6 +141,7 @@ services:
       CONNECTIONS_DB_PASS: admin
       CONNECTIONS_GRPC_PORT: 8787
       NATS_URI: nats://nats:4222
+      JAEGER_DOMAIN: jaeger
     depends_on:
      - connections-neo4j
      - nats
@@ -186,6 +191,7 @@ services:
       MESSAGE_GRPC_PORT: 8889
       spring_data_mongodb_username: admin
       spring_data_mongodb_password: admin
+      JAEGER_DOMAIN: jaeger
     depends_on:
      - mongodb-message
      - fluent-bit
@@ -209,6 +215,7 @@ services:
       JOB_RECOMMENDATION_DB_USER: neo4j
       JOB_RECOMMENDATION_DB_PASS: admin
       JOB_RECOMMENDATION_GRPC_PORT: 8899
+      JAEGER_DOMAIN: jaeger
     depends_on:
      - job-recommendations-neo4j
      - fluent-bit
