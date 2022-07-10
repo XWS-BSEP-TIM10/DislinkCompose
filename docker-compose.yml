@@ -32,7 +32,7 @@ services:
       PROFILE_GRPC_PORT: 8888
       MESSAGING_HOST: messaging-microservice
       MESSAGING_GRPC_PORT: 8889
-      JOB_RECOMMENDATION_HOST: messaging-microservice
+      JOB_RECOMMENDATION_HOST: job-recommendations-microservice
       JOB_RECOMMENDATION_GRPC_PORT: 8899
       JAEGER_DOMAIN: jaeger
   profile-microservice:
